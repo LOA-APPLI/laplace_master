@@ -37,7 +37,7 @@ class OptQueueViewerWidget(AbstractQueueViewerWidget):
             self.text_display.setText("<empty queue>")      # print it
             self.label_index.setText("0 / 0")               # adapt the counter
             return
-
+        
         item = self.queue[self.current_index]                   # else get the current element in the queue
         text_lines = ["<b>Inputs:</b>"]
         for ip, positions in item.get("inputs", {}).items():
@@ -69,8 +69,8 @@ class ScanQueueViewerWidget(AbstractQueueViewerWidget):
     def set_queue(self, suggestions: list, obj_spec: dict) -> None:
         '''Replace the queue with a new list of suggestions.'''
         # set the queue
-        self.queue = [dict(s, outputs=obj_spec) for s in suggestions] # attach outputs to each suggestion
 
+        self.queue = [dict(s) for s in suggestions] # attach outputs to each suggestion
         self.current_index = 0
         
         # update the widget
@@ -84,12 +84,14 @@ class ScanQueueViewerWidget(AbstractQueueViewerWidget):
             self.text_display.setText("<empty queue>")      # print it
             self.label_index.setText("0 / 0")               # adapt the counter
             return
-
+        
         item = self.queue[self.current_index]                   # else get the current element in the queue
+        log.info(f'Item: {item}')
         text_lines = ["<b>Inputs:</b>"]
-        for ip, positions in item.get("inputs", {}).items():
+        for ip, positions in item.items():
             text_lines.append(f"{ip}: {positions}")             # make one line per input ip
 
+            log.info(f'IP: {ip}, positions: {positions}, current index: {self.current_index}')
 
         self.text_display.setHtml("<br>".join(text_lines))                          # update the displayed text
         self.label_index.setText(f"{self.current_index + 1} / {len(self.queue)}")   # update the index counter label 

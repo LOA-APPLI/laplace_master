@@ -396,7 +396,7 @@ class MasterWindow(QMainWindow):
             log.info(f"New scan server added:")
             # Start polling timer (to update motors as well as positions)
             self.scan_timer = QTimer()
-            update_scan_time = 500 # In milliseconds
+            update_scan_time = 1000 # In milliseconds
             self.scan_timer.start(update_scan_time)
             # Update scanner with current list of motors and positions
             # and diagnostics and measurement names

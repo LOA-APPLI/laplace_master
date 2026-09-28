@@ -328,8 +328,10 @@ class OptBrain(QObject):
         for sample in data["samples"]:
             self.suggestions.append(sample)
         
-        log.info("New optimization suggestions added:\n"
-                 f"{json_style(self.suggestions)}")
+        #log.info("New optimization suggestions added:\n"
+        #         f"{json_style(self.suggestions)}")
+        log.info(f'Suggestions: {self.suggestions}, obj spec: {self.obj_spec}')
+        
         self.queue_updated.emit(self.suggestions, self.obj_spec)
         
 

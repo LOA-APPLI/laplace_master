@@ -260,64 +260,6 @@ class ScanBrain(QObject):
             self._exit_desync_mode()
 
 
-    def on_opt_data(self, 
-                    opt_address: str, 
-                    data: dict) -> None:
-        '''
-        Handle incoming data from the optimization server.
-
-        Resets the current state, stores the objective specification,
-        loads new suggested samples into the queue, and starts the
-        evaluation process if possible.
-
-        Args:
-            opt_address: (str)
-                Address of the optimization server.
-            
-            data: (dict)
-                Payload containing objective specification and samples.
-        '''
-        # if the received data is not an initialization or optimization suggestion
-        if not (data.get("is_init") or data.get("is_opt")):
-            return      # ignore it
-
-        # reset the attributes
-        self.suggestions.clear()
-        self.results.clear()
-        self.obj_spec.clear()
-        self.current = None
-        self.waiting = False
-        log.info("The Brain suggestions were cleared.")
-        # self.queue_updated.emit(self.suggestions, self.obj_spec)
-
-        # log.info("New optimization data received:\n"
-        #         f"{json_style(data)}")
-
-        self.opt_address = opt_address     # get the optimizer address
-        obj: dict = data.get("obj", {})    # get the objective list of keys along each objective address
-
-        normalized_obj = {}
-        # verify that the dict contains lists and that those lists are made of strings
-        for addr, keys in obj.items():
-            if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
-                raise ValueError(
-                    f"Invalid objective spec for {addr}. "
-                    f"Expected list[str], got: {keys}"
-                )
-            normalized_obj[addr] = keys
-
-        self.obj_spec = normalized_obj
-
-        # add samples to the suggestions
-        for sample in data["samples"]:
-            self.suggestions.append(sample)
-        
-        log.info("New optimization suggestions added:\n"
-                 f"{json_style(self.suggestions)}")
-        self.queue_updated.emit(self.suggestions, self.obj_spec)
-        
-        # self._next()  # provide the next point to the control system
-
     def on_scan_data(self, scan_address: str, 
                         settings: dict) -> None:
         '''
@@ -342,10 +284,12 @@ class ScanBrain(QObject):
         self.waiting = False
         log.info("Previous queue cleared.")
 
-
         queue = make_position_queue(settings) 
-        log.info(f'Queue: {queue}')
-        self.queue_updated.emit(queue)
+        # add samples to the suggestions
+
+        self.suggestions = queue
+
+        self.queue_updated.emit(queue, dict({}))
 
 
     def _next(self, shot_number: int, next_in_queue: int | None=None) -> None:
@@ -397,12 +341,15 @@ class ScanBrain(QObject):
         self.shot_number_from_diags = {}
         # self.motor_position_validated_at_shot = {}
 
-        self.pending_motor_addresses = set(self.current["inputs"].keys())  # addresses of the motors to move
-        self.expected_sources = set(self.obj_spec.keys())                  # addresses of the diagnostics we are waiting for
+        #self.pending_motor_addresses = set(self.current["inputs"].keys())  # addresses of the motors to move
+        self.pending_motor_addresses = set(self.current.keys())
+        #self.expected_sources = set(self.obj_spec.keys())                  # addresses of the diagnostics we are waiting for
 
         # filter the allowed motors
         inputs = {}
-        for addr, targets in self.current["inputs"].items():
+        #for addr, targets in self.current["inputs"].items():
+        log.info(f'self.current: {self.current}')
+        for addr, targets in self.current.items():
             
             motor_list = self.motors.get(addr)
             
@@ -551,13 +498,6 @@ class ScanBrain(QObject):
                     f"{json_style(values)}"
             )
 
-        # Initialize storage
-        # self.current_measurements.setdefault(address, {})  # create a key with empty dict in current_measurements
-
-        
-        #self.shot_number_from_diags[address] = values["shot_number"]
-
-
 
     def _finalize_current_sample(self) -> None:
         '''
@@ -572,10 +512,8 @@ class ScanBrain(QObject):
             return
         
         self.results.append({
-            "inputs": self.current["inputs"],
+            "inputs": self.current,
             "outputs": self.current_measurements,
-            "batch": self.current["batch"],
-            "candidate": self.current["candidate"],
             "shot_number_from_master": self.shot_number,
             "shot_number_from_diags": self.shot_number_from_diags,
             # "self.motor_position_validated_at_shot": self.motor_position_validated_at_shot
