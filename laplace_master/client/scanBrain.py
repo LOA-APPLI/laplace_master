@@ -44,7 +44,7 @@ class ScanBrain(QObject):
         self.waiting: bool = False          # boolean indicating if we are in a measurement process
         self.motion_pending: bool = False   # boolean indicating if motors are moving or expected to move
 
-        self.opt_address: str = "Unknown"        # Address of the OPT server
+        self.scan_address: str = "Unknown"        # Address of the OPT server
         self.motors: dict[str, list[dict]] = {}  # mask to determine which motor can move and what was the position when state changed
         
         self.shot_number_from_diags = {}    # the diagnostic addresses and the shot number they sent
@@ -280,6 +280,7 @@ class ScanBrain(QObject):
         self.suggestions.clear()
         self.results.clear()
         self.obj_spec.clear()
+        self.scan_address = scan_address
         self.current = None
         self.waiting = False
         log.info("Previous queue cleared.")
@@ -343,7 +344,9 @@ class ScanBrain(QObject):
 
         #self.pending_motor_addresses = set(self.current["inputs"].keys())  # addresses of the motors to move
         self.pending_motor_addresses = set(self.current.keys())
-        #self.expected_sources = set(self.obj_spec.keys())                  # addresses of the diagnostics we are waiting for
+
+        self.expected_sources = set(self.client_manager.get_all_diagnostics().keys())                   # addresses of the diagnostics we are waiting for: all diagnostics
+        log.info(f'Expected sources: {self.expected_sources}')
 
         # filter the allowed motors
         inputs = {}
@@ -461,7 +464,6 @@ class ScanBrain(QObject):
         if not data:
             return
         
-        # print(f'data from on_measurement = {data}')
         if not self.waiting:               # if we are not waiting for a measure
             if self.is_trig_logs and data:
                 log.debug(f"The method on_measurement was triggered while we were not waiting for a diagnostic (shot number {self.shot_number}).")
@@ -498,6 +500,16 @@ class ScanBrain(QObject):
                     f"{json_style(values)}"
             )
 
+        for key, value in values.items():
+                self.current_measurements.setdefault(address, {})[key] = value
+
+        # Check completion for this address
+
+        self.expected_sources.discard(address)
+        log.info(f"expected sources remaining: {self.expected_sources}")
+        
+        self.shot_number_from_diags[address] = values["shot_number"]
+
 
     def _finalize_current_sample(self) -> None:
         '''
@@ -516,30 +528,25 @@ class ScanBrain(QObject):
             "outputs": self.current_measurements,
             "shot_number_from_master": self.shot_number,
             "shot_number_from_diags": self.shot_number_from_diags,
-            # "self.motor_position_validated_at_shot": self.motor_position_validated_at_shot
         })
+        log.info(f'Results: {self.results}')
 
         for key in self.shot_number_from_diags.keys():
             if self.shot_number != self.shot_number_from_diags[key]:
                 log.error("The shot number from the master and the diagnostics are different.")
         
-        # for key in self.motor_position_validated_at_shot.keys():
-        #     if self.shot_number != self.motor_position_validated_at_shot[key]:
-        #         log.error("The shot number from the master and the motors are different.")
 
         self.current = None
         self.waiting = False
         self.shot_number = -1
         self.shot_number_from_diags = {}
-        # self.motor_position_validated_at_shot = {}
+
         self.queue_updated.emit(self.suggestions, self.obj_spec)
 
-        # if self.suggestions:
-        #     self._next()
-        # else:
-        #     self._send_results()  # Batch finished
+
         if not self.suggestions:
             self._send_results()
+            
 
 
     def _send_results(self) -> None:
