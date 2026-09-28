@@ -382,6 +382,17 @@ class ClientManager(QObject):
 
         client.opt_update(data=payload)
 
+    def send_scan(self, address: str, payload: dict)->None:
+        client = self.clients.get(address)
+        if not client or not client.connected:
+            return
+
+        if not self.server_devices[address] == DEVICE_SCAN:
+            return
+
+        client.scan_update(data=payload)
+
+
     def send_actuators_positions(self, 
                               address: str,
                               payload: dict) -> None:

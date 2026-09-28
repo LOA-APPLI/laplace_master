@@ -503,8 +503,6 @@ class ScanBrain(QObject):
         for key, value in values.items():
                 self.current_measurements.setdefault(address, {})[key] = value
 
-        # Check completion for this address
-
         self.expected_sources.discard(address)
         log.info(f"expected sources remaining: {self.expected_sources}")
         
@@ -553,16 +551,16 @@ class ScanBrain(QObject):
         '''
         Send collected batch results to the optimization server.
         '''
-        if self.opt_address is None:
+        if self.scan_address is None:
             log.debug(f"The optimizer adress is {None}. Impossible to send back results.")
             return
 
         if self.results:
             payload = {"results": self.results}
-            log.info(f"Sending results to optimizer: {self.opt_address}\n"
+            log.info(f"Sending results to scan manager: {self.scan_address}\n"
                     f"{json_style(payload)}")
 
-            self.client_manager.send_opt(self.opt_address, payload)
+            self.client_manager.send_scan(self.scan_address, payload)
 
 
     def set_motor_control(self, enabled: bool) -> None:
