@@ -17,7 +17,7 @@ from target_function_noisy import target_function_noisy
 target = target_function  # target function to use
 
 CAMERA_ADDRESS = "tcp://*:5556"
-MOTOR_ADDRESS = "tcp://147.250.140.85:5555"
+MOTOR_ADDRESS = "tcp://147.250.140.85:5557"
 SHOT_SUB_ADDRESS = "tcp://147.250.140.85:6009"
 
 

@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 
 from laplace_server.server_lhc import ServerLHC
 from laplace_server.protocol import DEVICE_MOTOR
+from laplace_log import log
 
 
 MOTOR_ADDRESS = "tcp://*:5557"
@@ -31,10 +32,14 @@ class DummyMotor:
 
     def set_positions(self, positions):
         print(f"[Motor] Moving to {positions}")
-
-        self.positions[0] = float(positions["0"])
-        self.positions[1] = float(positions["1"])
-
+        
+        for key, value in positions.items():
+            key = int(key)
+            try:
+                self.positions[key] = float(value)
+            except Exception as e:
+                log.info(f'Exception {e}, key: {key}')
+        
         print(f"[Motor] New positions = {self.positions}")
 
 
@@ -61,7 +66,7 @@ class DummyMotorWindow(QWidget):
             freedom=2,
             device=DEVICE_MOTOR,
             data=self.motor.get_data(),
-            name="dummy_motor"
+            name="dummy_motor_copy"
         )
 
         self.server.set_name_list(["Direction z", "Direction a"])
@@ -153,6 +158,7 @@ class DummyMotorWindow(QWidget):
         """
         Called when master sends new motor targets.
         """
+        log.info(f'Dummy motor copy at address {MOTOR_ADDRESS} moving to {positions}')
         self.motor.set_positions(positions)
 
         self.server.set_data(

@@ -229,6 +229,7 @@ class MasterClient:
     def set(self, positions: dict):
         '''
         '''
+        log.info(f'Setting {self.server_name} to positions {positions}')
         reply = self.send_message(
             make_set_request("Master", self.server_name, positions=positions)
         )

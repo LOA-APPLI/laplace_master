@@ -18,7 +18,7 @@ from interface.masterWindow import MasterWindow
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MasterWindow(flag="scan") # initialize the window
+    window = MasterWindow(flag="opt") # initialize the window
     window.show()           # run the main loop
 
     log.info("Window opened.")

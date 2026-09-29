@@ -521,12 +521,18 @@ class ScanBrain(QObject):
             log.debug(f"Impossible to finalize the current sample, self.current must be a {dict}, not ({type(self.current)})")
             return
         
-        self.results.append({
+        # self.results.append({
+        #     "inputs": self.current,
+        #     "outputs": self.current_measurements,
+        #     "shot_number_from_master": self.shot_number,
+        #     "shot_number_from_diags": self.shot_number_from_diags,
+        # })
+        self.results = {
             "inputs": self.current,
             "outputs": self.current_measurements,
             "shot_number_from_master": self.shot_number,
             "shot_number_from_diags": self.shot_number_from_diags,
-        })
+         }
         log.info(f'Results: {self.results}')
 
         for key in self.shot_number_from_diags.keys():
@@ -540,10 +546,11 @@ class ScanBrain(QObject):
         self.shot_number_from_diags = {}
 
         self.queue_updated.emit(self.suggestions, self.obj_spec)
+        self._send_results()
+        self.current_measurements = {} # Empty current measurements dictionary 
 
-
-        if not self.suggestions:
-            self._send_results()
+        #if not self.suggestions:
+        #    self._send_results()
             
 
 
