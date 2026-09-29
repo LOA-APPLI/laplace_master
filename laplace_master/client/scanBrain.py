@@ -520,18 +520,14 @@ class ScanBrain(QObject):
         if not isinstance(self.current, dict):
             log.debug(f"Impossible to finalize the current sample, self.current must be a {dict}, not ({type(self.current)})")
             return
+
         
-        # self.results.append({
-        #     "inputs": self.current,
-        #     "outputs": self.current_measurements,
-        #     "shot_number_from_master": self.shot_number,
-        #     "shot_number_from_diags": self.shot_number_from_diags,
-        # })
         self.results = {
             "inputs": self.current,
             "outputs": self.current_measurements,
             "shot_number_from_master": self.shot_number,
             "shot_number_from_diags": self.shot_number_from_diags,
+            "actuators":self.client_manager.get_all_controls()
          }
         log.info(f'Results: {self.results}')
 
