@@ -3,13 +3,13 @@
 Master is a standalone GUI application designed to orchestrate experimental devices over a network.  
 It connects to motor control systems, diagnostic devices, and an external optimizer using ZMQ servers built on the `laplace-server` protocol.
 
-The application does not perform optimization itself.  
+The application does not itself perform optimizations or scans.  It is configured as a master for optimization or scanning using the 'opt' or 'scan' flag at startup.
 It acts as a supervisory layer that:
 
-- Receives candidate suggestions from an optimizer
+- Receives candidate suggestions from an optimizer/Receives a list of samples from a scan manager
 - Moves control systems accordingly
 - Collects diagnostic measurements
-- Sends structured results back to the optimizer
+- Sends structured results back to the optimizer/scan manager
 
 Master is intended to run on the same network as the devices while remaining fully decoupled from the hardware.
 
