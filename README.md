@@ -81,6 +81,25 @@ It is strictly an orchestration layer.
 
 ---
 
+### Scan Panel
+
+Master interacts with an external scan server.
+
+The workflow is:
+
+1. The scan sends a sample batch
+2. Master queues samples
+3. If motor control is enabled (or manually triggered), Master:
+   - Sends motor positions to control systems
+   - Waits for diagnostic measurements
+   - Aggregates the results
+4. Results are sent back to the scan manager shot by shot
+
+Master does not allow manual motor control.  
+It is strictly an orchestration layer.
+
+---
+
 ## Communication Model
 
 Master communicates exclusively through ZMQ using the `laplace-server` protocol.
