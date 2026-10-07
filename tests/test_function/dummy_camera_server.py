@@ -174,6 +174,7 @@ class DummyCamera(QWidget):
         return {
             "shot_number": shot, # completed shot
             "motor": [x1.item(), x2.item()],
+            "name": self.name,
             self.obj1_name.text(): r[:, 0].item(),
             self.obj2_name.text(): r[:, 1].item(),
             "time": time.strftime("%H:%M:%S"),
