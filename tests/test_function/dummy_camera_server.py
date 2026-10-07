@@ -163,7 +163,6 @@ class DummyCamera(QWidget):
         """
         x1, x2 = self.get_motor()  # get the motor positions
         print(f'Get motor pos. {(x1, x2)}')
-
         x1 = torch.tensor(x1)
         x2 = torch.tensor(x2)
 
