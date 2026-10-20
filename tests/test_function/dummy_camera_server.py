@@ -133,7 +133,7 @@ class DummyCamera(QWidget):
             data={},
             name=self.name,
             empty_data_after_get=True,
-            plottables_list = ['Charge', 'Energy mean']
+            plottables_list = ['electron_charge', 'electron_energy_mean']
         )
         self.server.start()
 
