@@ -1,39 +1,97 @@
+# libraries
+from typing import Callable
 import time
-import threading
-import zmq
-import torch
 import sys
+import threading
 
+from laplace_server import ServerLHC
+from laplace_server.get_ip import get_ip
+from laplace_server.protocol import (
+    DEVICE_CAMERA, make_get_request
+)
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, 
-    QVBoxLayout, QLineEdit
+    QVBoxLayout, QLineEdit, QFormLayout,
 )
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
+import zmq
 
-from laplace_server.server_lhc import ServerLHC
-from laplace_server.protocol import DEVICE_CAMERA, make_get_request
+# project
+from dummy_motor_server import MOTOR_ADDRESS_1
+from dummy_shot_server import SHOT_SUB_ADDRESS
 from target_function import target_function
 from target_function_noisy import target_function_noisy
 
 target = target_function  # target function to use
 
-CAMERA_ADDRESS = "tcp://*:5556"
-MOTOR_ADDRESS = "tcp://147.250.140.85:5557"
-SHOT_SUB_ADDRESS = "tcp://147.250.140.85:6009"
+port_camera_1 = 5557
+plottable_list_camera_1 = [
+    "ElectronCharge",
+    "ElectronEnergyMean",
+    "ElectronEnergyStd",
+]
+my_ip = get_ip(name="Source Camera 1")
+CAMERA_ADDRESS_1 = f"tcp://{my_ip}:{port_camera_1}"
 
 
 class DummyCamera(QWidget):
-    def __init__(self):
+    '''Test class made to simulate the behavior of camera.'''
+
+    measurement_ready = pyqtSignal(object)
+    
+    def __init__(self, 
+                 id: int, 
+                 port: int, 
+                 plottable_list: list[str],
+                 motor_address: str,
+                 target_function: Callable,
+                 time_sleep_s=0.5):
+        '''
+        Create a demon thread to simulate 
+        the camera behavrior.
+
+        Args:
+            id (int):
+                the camera id.
+            
+            port (int):
+                the camera port.
+            
+            plottable_list (list[str]):
+                the list of objective names.
+            
+            motor_address (str):
+                the address of the motor used by
+                this camera.
+        '''
         super().__init__()
-        self.name = "dummy_camera"
-        self.setWindowTitle("Dummy Camera")
-        self.resize(300, 120)
+        self.id = id
+        self.name = f"dummy_camera_{id}"
+        self.port = port
+        self.ip = get_ip(name=f"Dummy Camera {id}")
+        self.plottable_list = plottable_list
+        self.motor_address = motor_address
+        self.target_function = target_function
+        self.time_sleep_s = time_sleep_s
 
         self.last_shot = -1
         self.last_result = ""
 
-        self.setup_zmq()
-        self.setup_lhc()
+        self.server = ServerLHC(
+            address=f"tcp://{self.ip}:{self.port}",
+            freedom=0,
+            device=DEVICE_CAMERA,
+            data={},
+            name=self.name,
+            empty_data_after_get=True,
+            plottables_list = plottable_list
+        )
+
         self.setup_ui()
+        self.measurement_ready.connect(self.update_ui)
+
+        self.setup_zmq()
+        self.server.start()
 
         self.running = True
         self.thread = threading.Thread(target=self.loop, daemon=True)
@@ -41,61 +99,56 @@ class DummyCamera(QWidget):
 
 
     def setup_ui(self) -> None:
-        """
-        Set the ui widgets.
-        """
-        self.setWindowTitle("Dummy Camera")
+        '''Set the UI widgets.'''
+        self.setWindowTitle(f"Dummy Camera {self.id}")
         self.resize(360, 220)
 
-        ### Addresses
+        layout = QVBoxLayout()
+
+        # Addresses
         self.sub_address = QLineEdit(SHOT_SUB_ADDRESS)
         self.sub_address.setReadOnly(True)
 
-        self.motor_address = QLineEdit(MOTOR_ADDRESS)
-        self.motor_address.setReadOnly(True)
+        self.motor_address_entry = QLineEdit(self.motor_address)
+        self.motor_address_entry.setReadOnly(True)
 
-        self.lhc_address = QLineEdit(self.server.address_for_client)
+        self.lhc_address = QLineEdit(
+            self.server.address_for_client
+        )
         self.lhc_address.setReadOnly(True)
-
-        ### Objective names
-        self.obj1_name = QLineEdit("electron_charge")
-        self.obj2_name = QLineEdit("electron_energy_mean")
-
-        self.obj1_name.setPlaceholderText("obj1 key")
-        self.obj2_name.setPlaceholderText("obj2 key")
-
-        ### Live values
-        self.shot_label = QLabel("Shot: -")
-        self.motor_label = QLabel("Motor: -")
-        self.value_label = QLabel("Values: -")
-        self.time_label = QLabel("Time: -")
-
-        # font size
-        self.setStyleSheet("""
-            QLabel {
-                font-size: 13px;
-            }
-        """)
-
-        ### Layout
-        layout = QVBoxLayout()
 
         layout.addWidget(QLabel("SHOT SUB"))
         layout.addWidget(self.sub_address)
 
         layout.addWidget(QLabel("MOTOR"))
-        layout.addWidget(self.motor_address)
+        layout.addWidget(self.motor_address_entry)
 
         layout.addWidget(QLabel("CAMERA"))
         layout.addWidget(self.lhc_address)
 
-        layout.addSpacing(10)
-
+        # Dynamic objective names
         layout.addWidget(QLabel("Objective names"))
-        layout.addWidget(self.obj1_name)
-        layout.addWidget(self.obj2_name)
 
-        layout.addSpacing(10)
+        objective_form = QFormLayout()
+        self.objective_names = {}
+
+        for name in self.plottable_list:
+            entry = QLineEdit(name)
+            entry.setReadOnly(True)
+            entry.setObjectName(
+                f"objective_{name.lower()}"
+            )
+
+            self.objective_names[name] = entry
+            objective_form.addRow(f"{name}:", entry)
+
+        layout.addLayout(objective_form)
+
+        # Live values
+        self.shot_label = QLabel("Shot: -")
+        self.motor_label = QLabel("Motor: -")
+        self.value_label = QLabel("Values: -")
+        self.time_label = QLabel("Time: -")
 
         layout.addWidget(self.shot_label)
         layout.addWidget(self.motor_label)
@@ -104,16 +157,37 @@ class DummyCamera(QWidget):
 
         self.setLayout(layout)
 
-    def update_ui(self, shot, motor, timestamp):
-        self.shot_label.setText(f"Shot: {shot}")
-        self.motor_label.setText(f"Motor: {motor}")
-        self.time_label.setText(f"Time: {timestamp}")
+
+
+    @pyqtSlot(object)
+    def update_ui(self, data: dict) -> None:
+        """Update all GUI labels from a measurement."""
+
+        self.shot_label.setText(
+            f"Shot: {data['shot_number']}"
+        )
+
+        self.motor_label.setText(
+            f"Motor: {data['motor']}"
+        )
+
+        self.time_label.setText(
+            f"Time: {data['time']}"
+        )
+
+        # Display only the configured objective values.
+        values = {
+            name: data[name]
+            for name in self.plottable_list
+            if name in data
+        }
+
+        self.value_label.setText(f"Values: {values}")
+
 
     ### ZMQ
-    def setup_zmq(self):
-        """
-        Creates the ZMQ context
-        """
+    def setup_zmq(self) -> None:
+        '''Creates the ZMQ context.'''
         self.ctx = zmq.Context()
 
         # sub to shot server
@@ -121,63 +195,66 @@ class DummyCamera(QWidget):
         self.sub.connect(SHOT_SUB_ADDRESS)
         self.sub.setsockopt_string(zmq.SUBSCRIBE, "SHOOT")
 
-    ### LHC
-    def setup_lhc(self):
-        """
-        Create the LHC server (request / reply)
-        """
-        self.server = ServerLHC(
-            address=CAMERA_ADDRESS,
-            freedom=0,
-            device=DEVICE_CAMERA,
-            data={},
-            name=self.name,
-            empty_data_after_get=True,
-            plottables_list = ['Charge', 'Energy mean']
-        )
-        self.server.start()
 
     ### Motor
-    def get_motor(self) -> list:
-        """
-        Get the motor value.
-        """
+    def get_motor(self) -> dict:
+        '''Get the motor value.'''
         sock = self.ctx.socket(zmq.REQ)
-        sock.connect(MOTOR_ADDRESS)
+        try:
+            sock.connect(self.motor_address)
 
-        sock.send_json(make_get_request(sender=self.name, target="dummy_motor"))
-        reply = sock.recv_json()
-
-        sock.close()
+            sock.send_json(
+                make_get_request(
+                    sender=self.name, 
+                    target="dummy_motor"
+                    )
+                )
+            reply = sock.recv_json()
+            data = reply["payload"]["data"]
+            
+            motor_shot = data["shot_number"]
+            
+            return data["shot_positions"]
         
-        data = reply["payload"]["data"]
-        positions = data["shot_positions"]
-        motor_shot = data["shot_number"]
-
-        return positions
+        finally:
+            sock.close()
 
     ### compute test function
-    def measure(self, shot: int):
-        """
-        Sample the test function.
-        """
-        x1, x2 = self.get_motor()  # get the motor positions
-        print(f'Get motor pos. {(x1, x2)}')
+    def measure(self, shot: int) -> dict:
+        '''Evaluate the target function for a completed shot.'''
 
-        x1 = torch.tensor(x1)
-        x2 = torch.tensor(x2)
+        motor_positions = self.get_motor()
 
-        r = target(x1, x2)  # get the test function value
-        print(f'Get target {r}')
-        self.value_label.setText(f"Value: {r[:, 0].item()} charge | {r[:, 1].item()} energy")
+        result = self.target_function(
+            positions=motor_positions, 
+            n_objectives=len(self.plottable_list)
+        )
 
-        return {
-            "shot_number": shot, # completed shot
-            "motor": [x1.item(), x2.item()],
-            self.obj1_name.text(): r[:, 0].item(),
-            self.obj2_name.text(): r[:, 1].item(),
+        # One measurement at a time: shape [1, n_objectives].
+        values = result[0]
+
+        objective_names = [
+            entry.text()
+            for entry in self.objective_names.values()
+        ]
+
+        if len(objective_names) != values.numel():
+            raise ValueError(
+                f"Target returned {values.numel()} objectives, "
+                f"but {len(objective_names)} names were configured."
+            )
+
+        data = {
+            "shot_number": shot,
+            "motor": motor_positions,
             "time": time.strftime("%H:%M:%S"),
         }
+
+        for name, value in zip(objective_names, values):
+            data[name] = value.item()
+
+        return data
+
 
     ### Loop
     def loop(self):
@@ -193,16 +270,13 @@ class DummyCamera(QWidget):
                 completed_shot = shot - 1               # shot that just been completed
                 self.last_shot = completed_shot         # store last completed shot
 
-                time.sleep(2)  # camera processing
+                time.sleep(self.time_sleep_s)  # camera processing
 
                 data = self.measure(completed_shot)    # compute the test function
                 self.server.set_data(data)             # set the values in the LHC server
 
-                self.update_ui(                        # update the interface
-                    completed_shot,
-                    data["motor"],
-                    data["time"]
-                )
+                # Send the measurement to the GUI thread safely.
+                self.measurement_ready.emit(data)
 
                 print("Camera triggered:", completed_shot)
 
@@ -224,6 +298,13 @@ class DummyCamera(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    cam = DummyCamera()
+    cam = DummyCamera(
+        id=1,
+        port=port_camera_1,
+        plottable_list=plottable_list_camera_1,
+        motor_address=MOTOR_ADDRESS_1,
+        target_function=target,
+        time_sleep_s=0.5,
+    )
     cam.show()
     sys.exit(app.exec())

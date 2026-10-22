@@ -1,36 +1,35 @@
 import torch
 
+from target_function import target_function
+
 noise_factor = 0.1
 
-def target_function_noisy(x1, x2):
+
+def target_function_noisy(
+    positions: dict,
+    n_objectives: int = 3,
+    noise: float = noise_factor,) -> torch.Tensor:
     '''
-    Objective that we want to optimize.
-    
-        Args:
-            x1, x2: coordinates, can be scalars or batched tensors
-        
-        Return:
-            stacked: torch.Tensor of shape [1, 2].
+    Evaluate the target function with independent multiplicative noise.
+
+    Args:
+        positions: Dictionary of motor-axis indices and values.
+        n_objectives: Number of objectives to return (1, 2, or 3).
+        noise: Maximum relative noise amplitude.
+
+    Returns:
+        Tensor with shape [N, n_objectives], or [1, n_objectives]
+        for a single point.
     '''
-    result_1 = (
-        torch.exp(-(x1 - 2) ** 2 - (x2 - 4) ** 2)
-        + torch.exp(-(x1 - 6) ** 2 / 10 - (x2 - 3) ** 2 / 4)
-        + 1 / (x1 ** 2 + x2 ** 2 + 1)
+    # Compute the noiseless objectives.
+    values = target_function(
+        positions=positions,
+        n_objectives=n_objectives,
     )
 
-    result_2 = (
-        -torch.exp(-(x1 - 2) ** 2 - (x2 - 4) ** 2)
-        + 1 / (x1 ** 4 + x2 ** 2 + 1)
-        - torch.exp(-(x1 - 3) ** 2 / 8 - (x2 - 7) ** 2 / 6)
+    # Independent uniform noise for every point and objective.
+    epsilon = noise * values.abs() * (
+        2 * torch.rand_like(values) - 1
     )
-    
-    # Assurer que result_1 et result_2 sont au moins 1D
-    result_1 = result_1.unsqueeze(0) if result_1.ndim == 0 else result_1
-    result_2 = result_2.unsqueeze(0) if result_2.ndim == 0 else result_2
-    
-    # Maintenant on les empile et on transpose pour obtenir [N, 2]
-    stacked = torch.stack([result_1, result_2], dim=-1)  # shape [N, 2]
-    epsilon = noise_factor * torch.abs(stacked) * (2 * torch.rand_like(stacked) - 1)
-    stacked = stacked + epsilon
 
-    return stacked
+    return values + epsilon

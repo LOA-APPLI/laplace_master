@@ -13,10 +13,18 @@ from PyQt6.QtWidgets import (
 )
 import zmq
 
+# project
+from dummy_shot_server import SHOT_SUB_ADDRESS
+
+
 port_motor_1 = 5555
-shot_port = 6009
-my_ip = get_ip(name="Dummy Motor 1")
-SHOT_SUB_ADDRESS = f"tcp://{my_ip}:{shot_port}"
+name_list_motor_1 = [
+    "GasJetHeight", 
+    "GasJetLongitudinal", 
+    "GasJetTransverse",
+]
+my_ip = get_ip(name="Source Motor 1")
+MOTOR_ADDRESS_1 = f"tcp://{my_ip}:{port_motor_1}"
 
 
 class DummyMotor:
@@ -273,11 +281,7 @@ if __name__ == "__main__":
     window = DummyMotorWindow(
         id=1, 
         port=port_motor_1,
-        name_list=[
-            "GasJetHeight", 
-            "GasJetLongitudinal", 
-            "GasJetTransverse",
-        ]
+        name_list=name_list_motor_1
     )
     window.show()
 
