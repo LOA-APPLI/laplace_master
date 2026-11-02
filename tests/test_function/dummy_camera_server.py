@@ -195,6 +195,21 @@ class DummyCamera(QWidget):
         self.sub.connect(SHOT_SUB_ADDRESS)
         self.sub.setsockopt_string(zmq.SUBSCRIBE, "SHOOT")
 
+    ### LHC
+    def setup_lhc(self):
+        """
+        Create the LHC server (request / reply)
+        """
+        self.server = ServerLHC(
+            address=CAMERA_ADDRESS,
+            freedom=0,
+            device=DEVICE_CAMERA,
+            data={},
+            name=self.name,
+            empty_data_after_get=True,
+            plottables_list = ['electron_charge', 'electron_energy_mean']
+        )
+        self.server.start()
 
     ### Motor
     def get_motor(self) -> dict:
@@ -230,23 +245,26 @@ class DummyCamera(QWidget):
             n_objectives=len(self.plottable_list)
         )
 
-        # One measurement at a time: shape [1, n_objectives].
-        values = result[0]
+    ### compute test function
+    def measure(self, shot: int):
+        """
+        Sample the test function.
+        """
+        x1, x2 = self.get_motor()  # get the motor positions
+        print(f'Get motor pos. {(x1, x2)}')
+        x1 = torch.tensor(x1)
+        x2 = torch.tensor(x2)
 
-        objective_names = [
-            entry.text()
-            for entry in self.objective_names.values()
-        ]
+        r = target(x1, x2)  # get the test function value
+        print(f'Get target {r}')
+        self.value_label.setText(f"Value: {r[:, 0].item()} charge | {r[:, 1].item()} energy")
 
-        if len(objective_names) != values.numel():
-            raise ValueError(
-                f"Target returned {values.numel()} objectives, "
-                f"but {len(objective_names)} names were configured."
-            )
-
-        data = {
-            "shot_number": shot,
-            "motor": motor_positions,
+        return {
+            "shot_number": shot, # completed shot
+            "motor": [x1.item(), x2.item()],
+            "name": self.name,
+            self.obj1_name.text(): r[:, 0].item(),
+            self.obj2_name.text(): r[:, 1].item(),
             "time": time.strftime("%H:%M:%S"),
         }
 
