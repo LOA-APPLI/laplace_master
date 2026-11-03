@@ -272,9 +272,27 @@ class ConnectionPanel(QWidget):
             widget.toggle_connection_state()
 
 
+    # def update_server_data(self,
+    #                        address: str,
+    #                        data: dict) -> None:
+    #     '''
+    #     Transmit data to ServerControlWidget.
+    #     '''
+    #     if data:
+    #         list_widgets = self.server_control_widgets.get(address)
+    #         if not list_widgets:
+    #             return
+
+    #         for i, widget in enumerate(list_widgets):
+    #             try:
+    #                 widget.update_positions(data["positions"][i], data["unit"])
+    #             except Exception as e:
+    #                 log.error(f"Exception occured in ConnectionPanel update_server_data: {e}\n"
+    #                           f"The data was: {data}")
+
     def update_server_data(self,
-                           address: str,
-                           data: dict) -> None:
+                       address: str,
+                       data: dict) -> None:
         '''
         Transmit data to ServerControlWidget.
         '''
@@ -285,7 +303,8 @@ class ConnectionPanel(QWidget):
 
             for i, widget in enumerate(list_widgets):
                 try:
-                    widget.update_positions(data["positions"][i], data["unit"])
+                    position = data["positions"][str(i)]
+                    widget.update_positions(position, data["unit"])
                 except Exception as e:
-                    log.error(f"Exception occured in ConnectionPanel update_server_data: {e}\n"
-                              f"The data was: {data}")
+                    log.error(f"Exception occurred in ConnectionPanel update_server_data: {e}\n"
+                            f"The data was: {data}")

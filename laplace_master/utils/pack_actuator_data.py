@@ -1,7 +1,29 @@
 
 from itertools import product
+from laplace_log import log
 
+# def pack_actuator_data(motor_names, motor_state):
+#     controls = {}
 
+#     for address, names in motor_names.items():
+#         state = motor_state[address]
+
+#         controls[address] = {
+#             "moving": state["moving"],
+#             "unit": state["unit"],
+#             "shot_number": state["shot_number"],
+#             "motors": [
+#                 {
+#                     "name": name,
+#                     "position": position,
+#                     "shot_position": shot_position,
+#                 }
+#                 for name, position, shot_position
+#                 in zip(names, state["positions"], state["shot_positions"])
+#             ],
+#         }
+
+#     return controls
 def pack_actuator_data(motor_names, motor_state):
     controls = {}
 
@@ -9,23 +31,20 @@ def pack_actuator_data(motor_names, motor_state):
         state = motor_state[address]
 
         controls[address] = {
-            "moving": state["moving"],
+            "moving": state.get("moving", False),
             "unit": state["unit"],
             "shot_number": state["shot_number"],
-            "motors": [
-                {
+            "motors": {
+                str(i): {
                     "name": name,
-                    "position": position,
-                    "shot_position": shot_position,
+                    "position": state["positions"][str(i)],
+                    "shot_position": state["shot_positions"][str(i)],
                 }
-                for name, position, shot_position
-                in zip(names, state["positions"], state["shot_positions"])
-            ],
+                for i, name in enumerate(names)
+            },
         }
 
     return controls
-
-
 
 def make_position_queue(settings: dict) -> list[dict]:
     """

@@ -266,9 +266,9 @@ class MasterWindow(QMainWindow):
             )
         else: 
 
-            self.globalControlPanel.load_controls_clicked.connect(
-                self.brain.update_controls_and_diagnostics
-            )
+            # self.globalControlPanel.load_controls_clicked.connect(
+            #     self.brain.update_controls_and_diagnostics
+            # )
 
             self.globalControlPanel.motor_control_changed.connect(
                 self.brain.set_motor_control

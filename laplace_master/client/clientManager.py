@@ -203,7 +203,6 @@ class ClientManager(QObject):
                 motor_names = {address: info.get('name_list')}
                 motor_state = {address: client.get()['payload']['data']}
                 controls.update(pack_actuator_data(motor_names, motor_state))
-                log.debug(f'Controls: {controls}')
         return controls
 
 
@@ -216,7 +215,7 @@ class ClientManager(QObject):
             
             elif info.get('device') == 'CAMERA':
                 camera_name = info.get('name')
-                #camera_data = client.get()['payload']['data']
+        #         #camera_data = client.get()['payload']['data']
                 camera_plottables_list = info.get('plottables_list')
                 diagnostics[address] = {'name': camera_name, 'plottables_list': camera_plottables_list}
         return diagnostics
