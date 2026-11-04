@@ -342,21 +342,21 @@ class ClientManager(QObject):
             if not client or not client.connected:  # if the client does not exist or is not connected
                 continue                            # ignore it
 
-            # Build positions payload with explicit indices
-            positions = {}
+            # # Build positions payload with explicit indices
+            # positions = {}
 
-            for position_index, value in enumerate(values):
-                # print(f"position_index = {position_index}, value = {value}")
-                if value is None:   # ignore the None values
-                    continue
+            # for position_index, value in enumerate(values):
+            #     # print(f"position_index = {position_index}, value = {value}")
+            #     if value is None:   # ignore the None values
+            #         continue
 
-                positions[position_index] = value   # set the positions values
+            #     positions[position_index] = value   # set the positions values
 
-            # if there is no position for this address
-            if not positions:
-                continue      # ignore it
-            print(f"positions send = {positions}")
-            client.set(positions)   # send the positions to the server
+            # # if there is no position for this address
+            # if not positions:
+            #     continue      # ignore it
+            print(f"positions sent = {values}")
+            client.set(values)   # send the positions to the server
 
 
     def send_opt(self, 

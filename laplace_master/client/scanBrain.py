@@ -350,27 +350,27 @@ class ScanBrain(QObject):
 
         # filter the allowed motors
         inputs = {}
-        #for addr, targets in self.current["inputs"].items():
+
         log.info(f'self.current: {self.current}')
         for addr, targets in self.current.items():
-            
+
             motor_list = self.motors.get(addr)
-            
-            if motor_list is None:
-                inputs[addr] = targets
-                continue
+            filtered = {}
 
-            filtered = []
+            for key, target in targets.items():
+                value = target
 
-            for i, t in enumerate(targets):
-                if motor_list[i]["enabled"]:
-                    filtered.append(t)
-                else:
-                    position = motor_list[i]["position"]
-                    filtered.append(position)
-                    log.info(f"The motor {i + 1} from {addr} is disabled.\n" 
-                             f"Using the current position: {position}, rather than the suggestion: {t}")
-            
+                if motor_list is not None:
+                    # keys are strings ('0', '1', ...), motor_list is indexed by int
+                    motor = motor_list[int(key)]
+
+                    if not motor["enabled"]:
+                        value = motor["position"]
+                        log.info(f"The motor {key} from {addr} is disabled.\n"
+                                 f"Using the current position: {value}, rather than the suggestion: {target}")
+
+                filtered[key] = value
+
             inputs[addr] = filtered
         
         log.info("Measuring inputs:\n"
@@ -385,8 +385,9 @@ class ScanBrain(QObject):
         motor_list = self.motors.get(address)
 
         if motor_list:
-            for i, pos in enumerate(positions.get("positions", [])):
-                motor_list[i]["position"] = pos
+            for key, pos in positions.get("positions", {}).items():
+                # keys are strings ('0', '1', ...), motor_list is indexed by int
+                motor_list[int(key)]["position"] = pos
 
         if not self.waiting or not self.motion_pending:
             return
@@ -404,43 +405,48 @@ class ScanBrain(QObject):
                 self.motion_pending = False
 
 
-    def _motors_match_target(self, address, current, target):        
-        # current_positions = current.get("shot_positions", [])
-        current_positions = current.get("positions", [])
+    def _motors_match_target(self, address, current, target):
+        # current_positions = current.get("shot_positions", {})
+        current_positions = current.get("positions", {})
         target_positions = target.get(address)
-        
+
         # motor_shot = current.get("shot_number")
         # if motor_shot is not None:
         #     self._observe_shot(motor_shot, source="motor")
-        
+
         # motor_shot = current.get("shot_number")
         # self._observe_shot(motor_shot, source="motor")
 
         if target_positions is None:
             return False
 
-        if len(current_positions) < len(target_positions):
+        device_type = self.client_manager.server_devices[address]
+
+        if device_type == DEVICE_GAS:
+            device = "Gas"
+            tolerance = self.tolerance_gas
+        elif device_type == DEVICE_MOTOR:
+            device = "Motor"
+            tolerance = self.tolerance_motors
+        else:
             return False
 
-        for c, t in zip(current_positions, target_positions):
+        for key, t in target_positions.items():
 
             if t is None:
                 continue
-            
-            if self.client_manager.server_devices[address] == DEVICE_GAS:
-                device = "Gas"
-                if abs(c - t) > self.tolerance_gas:
-                    return False
-            
-            elif self.client_manager.server_devices[address] == DEVICE_MOTOR:
-                device = "Motor"
-                if abs(c - t) > self.tolerance_motors:
-                    return False
-        
-        log.debug(f"{device} tolerance passed, for address {address}.")
-        
-        return True
 
+            # the motor has not reported a position yet
+            c = current_positions.get(key)
+            if c is None:
+                return False
+
+            if abs(c - t) > tolerance:
+                return False
+
+        log.debug(f"{device} tolerance passed, for address {address}.")
+
+        return True
 
     def on_measurement(self, 
                        address: str, 

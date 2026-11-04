@@ -248,10 +248,14 @@ class DummyCamera(QWidget):
             "shot_number": shot,
             "motor": motor_positions,
             "time": time.strftime("%H:%M:%S"),
+            "name":self.name
         }
 
         for name, value in zip(objective_names, values):
-            data[name] = value.item()
+            #data[name] = value.item() 
+            data.setdefault('plottables', {})[name]= value.item()
+
+
 
         return data
 

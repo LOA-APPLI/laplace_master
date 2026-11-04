@@ -424,7 +424,7 @@ class MasterWindow(QMainWindow):
             try:
                 self.brain.on_motor_position_update(address, data)  # and brain measurement
             except Exception as e:
-                log.error(f"Error: while processing motor position update.\n{e}")
+                log.error(f"Error: .\n{e}")
 
         elif device_type == DEVICE_SHOT:
             self.laser_panel.set_shot_value(address, data)
