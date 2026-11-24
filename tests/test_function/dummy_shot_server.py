@@ -14,7 +14,8 @@ from laplace_server.protocol import DEVICE_SHOT
 
 my_ip = get_ip(name="Shot Server")
 PUB_PORT = 6009
-LHC_ADDRESS = "tcp://*:7892"
+#LHC_ADDRESS = "tcp://*:7892"
+LHC_ADDRESS = f"tcp://{my_ip}:7892"
 SHOT_SUB_ADDRESS = f"tcp://{my_ip}:6009"
 
 

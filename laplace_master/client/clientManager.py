@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, pyqtSignal
 from laplace_log import log
-from laplace_server.protocol import DEVICE_OPT, DEVICE_SCAN, DEVICE_MOTOR
+from laplace_server.protocol import DEVICE_OPT, DEVICE_SCAN
 
 from utils.pack_actuator_data import pack_actuator_data
 
@@ -342,19 +342,6 @@ class ClientManager(QObject):
             if not client or not client.connected:  # if the client does not exist or is not connected
                 continue                            # ignore it
 
-            # # Build positions payload with explicit indices
-            # positions = {}
-
-            # for position_index, value in enumerate(values):
-            #     # print(f"position_index = {position_index}, value = {value}")
-            #     if value is None:   # ignore the None values
-            #         continue
-
-            #     positions[position_index] = value   # set the positions values
-
-            # # if there is no position for this address
-            # if not positions:
-            #     continue      # ignore it
             print(f"positions sent = {values}")
             client.set(values)   # send the positions to the server
 
@@ -392,24 +379,7 @@ class ClientManager(QObject):
         client.scan_update(data=payload)
 
 
-    def send_actuators_positions(self, 
-                              address: str,
-                              payload: dict) -> None:
-        '''Send the current actuator positions
-        to all scan devices
-        
-        Args:
-            address: (str) Server address
-            payload: (dict) Dict formatted as:
-        '''
-        client = self.clients[address]
-        scanners = self.get_all_scanners()
-        for scanner_address, _ in scanners.items():
-            client = self.clients[scanner_address]
-            client.scan_act_position_update(data=payload)
-
-
-            
+           
 
             
 

@@ -280,6 +280,7 @@ class DummyCamera(QWidget):
                 self.server.set_data(data)             # set the values in the LHC server
 
                 # Send the measurement to the GUI thread safely.
+                print(f'Measurement ready with data: {data}')
                 self.measurement_ready.emit(data)
 
                 print("Camera triggered:", completed_shot)
@@ -308,7 +309,7 @@ if __name__ == "__main__":
         plottable_list=plottable_list_camera_1,
         motor_address=MOTOR_ADDRESS_1,
         target_function=target,
-        time_sleep_s=0.5,
+        time_sleep_s=0.001,
     )
     cam.show()
     sys.exit(app.exec())

@@ -7,7 +7,7 @@ from laplace_log import log
 from laplace_server.protocol import (
     make_ping, make_info_request, make_opt_update, make_scan_update,
     make_get_request, make_save_request, make_set_request, 
-    make_set_actuators, make_scan_act_position_update, 
+    make_set_actuators, 
     make_set_diagnostics
 )
 
@@ -308,30 +308,6 @@ class MasterClient:
         return reply   # return the server dictionary        
 
     
-    def scan_act_position_update(self, data: dict) -> dict | None:
-        '''
-        Send the current actuator positions to the server.
-
-        Args:
-            data: (dict)
-                Dictionary containing motor positions
-
-        Returns:
-            dict | None:
-                The server reply if successful,
-                None otherwise.
-        '''
-        if self.ready:
-            reply = self.send_message(
-                make_scan_act_position_update("Master", self.server_name, data=data)
-            )
-        else :
-            return None
-        
-        if not self._is_valid_reply(reply):  # if the response is not valid
-            return None                      # ignore it
-        
-        return reply   # return the server dictionary
     
     def close(self) -> None:
         '''Close the underlying ZeroMQ socket immediately.'''

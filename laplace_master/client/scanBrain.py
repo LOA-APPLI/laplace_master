@@ -394,9 +394,6 @@ class ScanBrain(QObject):
 
         target = self.commanded_inputs
 
-        # motor_shot = positions.get("shot_number")
-        # if motor_shot is not None:
-        #     self.motor_position_validated_at_shot[address] = motor_shot
 
         if self._motors_match_target(address, positions, target):
             self.pending_motor_addresses.discard(address)
@@ -406,16 +403,10 @@ class ScanBrain(QObject):
 
 
     def _motors_match_target(self, address, current, target):
-        # current_positions = current.get("shot_positions", {})
+
         current_positions = current.get("positions", {})
         target_positions = target.get(address)
 
-        # motor_shot = current.get("shot_number")
-        # if motor_shot is not None:
-        #     self._observe_shot(motor_shot, source="motor")
-
-        # motor_shot = current.get("shot_number")
-        # self._observe_shot(motor_shot, source="motor")
 
         if target_positions is None:
             return False
@@ -551,10 +542,6 @@ class ScanBrain(QObject):
         self._send_results()
         self.current_measurements = {} # Empty current measurements dictionary 
 
-        #if not self.suggestions:
-        #    self._send_results()
-            
-
 
     def _send_results(self) -> None:
         '''
@@ -586,8 +573,6 @@ class ScanBrain(QObject):
         # set the motor control
         self.motor_control_enabled = enabled
         
-        # if enabled:         # if motors can be drive
-        #     self._next(shot_number=-1)    # get the next sample
 
 
     def set_motor_enabled(self, 
